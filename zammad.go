@@ -2,6 +2,7 @@ package zammad
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -41,10 +42,22 @@ func (z *Zammad) RawNewTicket(body []byte) ([]byte, error) {
 
 func (z *Zammad) AddTagToTicket(id int, tag string) error {
 
-	url := fmt.Sprintf("%v/api/v1/tags/add?object=Ticket&o_id=%+v&item=%+v", z.Server, id, tag)
-	req, _ := http.NewRequest("GET", url, nil)
+	reqBody := map[string]interface{}{
+		"item":   tag,
+		"object": "Ticket",
+		"o_id":   id,
+	}
 
-	_, err := z.Client.Do(req)
+	reqBodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%v/api/v1/tags/add", z.Server)
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	_, err = z.Client.Do(req)
 
 	if err != nil {
 		return err
